@@ -1,0 +1,50 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django-specific files
+*.log
+db.sqlite3
+*.sqlite3
+media/
+staticfiles/
+local_settings.py
+
+# Environment variables
+.env
+
+# Virtual environment
+myenv/
+venv/
+ENV/
+env/
+.venv/
+
+# macOS-specific files
+.DS_Store
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*~
+
+# Coverage and testing
+.coverage
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Python egg files
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+
+
+dump.rdb
