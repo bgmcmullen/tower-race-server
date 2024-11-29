@@ -59,6 +59,7 @@ class GameConsumer(WebsocketConsumer):
         'payload': None,
         'type': "player_wins",
       }))
+      return
 
 
     computer_turn_status = self.game.play_computers_turn()
@@ -90,6 +91,7 @@ class GameConsumer(WebsocketConsumer):
         'payload': None,
         'type': "player_wins",
       }))
+      return
 
     computer_turn_status = self.game.play_computers_turn()
     self.send(text_data=json.dumps({
