@@ -283,7 +283,7 @@ class Game:
         if best_to_replace != None:
             take_from_pile.remove(newbrick)
             self.find_and_replace(newbrick, best_to_replace, self.computer_tower)
-            return f"The computer took {newbrick} from the discard pile and replaced a brick."
+            return f"The computer took {newbrick} from the discard stack."
 
         take_from_pile = self.main_pile
         newbrick = take_from_pile[0]
@@ -292,7 +292,7 @@ class Game:
         if best_to_replace != None:
             take_from_pile.remove(newbrick)
             self.find_and_replace(newbrick, best_to_replace, self.computer_tower)
-            return f"The computer took {newbrick} from the main pile and replaced a brick."
+            return f"The computer took {newbrick} from the hidden stack."
             
         return "The computer passes"
 
