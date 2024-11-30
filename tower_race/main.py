@@ -216,18 +216,20 @@ class Game:
 
 
     def calculate_best_replacement(self, test_tower, newbrick, threshold):
-        if newbrick < min(test_tower) or (newbrick < 6 and newbrick < test_tower[1] and newbrick < test_tower[0]):
+        if (newbrick < min(test_tower) and newbrick < 5) or (newbrick < 6 and newbrick < test_tower[1] and newbrick < test_tower[0]):
             best_to_replace = test_tower[0]
             return best_to_replace
-        if newbrick > max(test_tower) or (newbrick > 54 and newbrick > test_tower[8] and newbrick > test_tower[9]):
+        if (newbrick > max(test_tower) and newbrick > 55) or (newbrick > 54 and newbrick > test_tower[8] and newbrick > test_tower[9]):
             best_to_replace = test_tower[9]
             return best_to_replace
+        slot = None
 
         for i in range(1, len(test_tower) - 1):
                 current_brick = test_tower[i]
                 difference = test_tower[i+1] - test_tower[i-1]
-                if difference > 1 and difference < 20 and abs((i + 1) * 6 - newbrick) < 10:
-                    if newbrick < test_tower[i+1] and newbrick > test_tower[i-1]:
+                if newbrick < test_tower[i+1] and newbrick > test_tower[i-1] and difference > 1 and difference < 20:
+                    slot = i
+                    if abs((i + 1) * 6 - newbrick) < 10:
                         if current_brick > test_tower[i+1] or current_brick < test_tower[i-1]:
                             best_to_replace = current_brick
                             return best_to_replace
@@ -265,6 +267,20 @@ class Game:
                         best_to_replace = current_brick
                 test_tower[i] = current_brick 
             if highest_score > before_score + threshold:
+                return best_to_replace
+            elif slot != None:
+                if test_tower[:slot] == sorted(test_tower[:slot]) and newbrick < test_tower[slot]:
+                    best_to_replace = test_tower[slot]
+                    return best_to_replace
+                elif test_tower[slot:] == sorted(test_tower[slot:]) and newbrick > test_tower[slot]:
+                    best_to_replace = test_tower[slot]
+                    return best_to_replace
+                
+            elif (newbrick < min(test_tower)):
+                best_to_replace = test_tower[0]
+                return best_to_replace
+            elif (newbrick > max(test_tower)):
+                best_to_replace = test_tower[9]
                 return best_to_replace
             else:
                 return None
