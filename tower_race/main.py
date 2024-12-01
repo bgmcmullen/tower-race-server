@@ -75,8 +75,15 @@ class Game:
             top_brick = self.get_top_brick(main_pile)
             self.add_brick_to_discard(top_brick, discard)
 
-    def check_tower_blaster(self, tower):
+    def check_tower_blaster(self, which_tower):
         """checks if a tower is stable"""
+
+        if which_tower == 'player':
+            tower = self.player_tower
+
+        if which_tower == 'computer':
+            tower = self.computer_tower
+
         if(tower == sorted(tower)):
             return True
         else:
@@ -113,7 +120,7 @@ class Game:
         "adds brick to discard pile"
         self.discard.insert(0, brick)
 
-    def find_and_replace(self, new_brick,brick_to_be_replaced,tower,discard):
+    def find_and_replace(self, new_brick,brick_to_be_replaced,tower):
         """find a brick to replace and replaces the brick, the removed brick is placed in the discard pile"""
         #check if the the brick to be replaced is in tower
         try:
@@ -208,22 +215,26 @@ class Game:
     #     return
 
 
-    def calculate_best_replacement(self, test_tower, newbrick, threshold):
-        if newbrick < min(test_tower) or (newbrick < 6 and newbrick < test_tower[1] and newbrick < test_tower[0]):
+    def calculate_best_replacement(self, test_tower, newbrick, threshold, pile):
+        if test_tower[0] >= 12 and test_tower[:5] != sorted(test_tower[:5]) and ((newbrick < min(test_tower) and test_tower[0] > 5) or (newbrick < 6 and newbrick < test_tower[1] and newbrick < test_tower[0])):
             best_to_replace = test_tower[0]
-            return best_to_replace
-        if newbrick > max(test_tower) or (newbrick > 54 and newbrick > test_tower[8] and newbrick > test_tower[9]):
+            return (best_to_replace, f"The computer took {newbrick} from the {pile} stack and replaced {best_to_replace} because it fits at the bottom.")
+        if test_tower[9] <= 48 and test_tower[5:] != sorted(test_tower[5:]) and ((newbrick > max(test_tower) and test_tower[9] < 55) or (newbrick > 54 and newbrick > test_tower[8] and newbrick > test_tower[9])):
             best_to_replace = test_tower[9]
-            return best_to_replace
+            return (best_to_replace, f"The computer took {newbrick} from the {pile} stack and replaced {best_to_replace} because it fits at the top.")
+        slot = None
 
+        difference = 100
         for i in range(1, len(test_tower) - 1):
                 current_brick = test_tower[i]
                 difference = test_tower[i+1] - test_tower[i-1]
-                if difference > 1 and difference < 20 and abs((i + 1) * 6 - newbrick) < 10:
-                    if newbrick < test_tower[i+1] and newbrick > test_tower[i-1]:
+                if newbrick < test_tower[i+1] and newbrick > test_tower[i-1] and difference > 1:
+                    slot = i
+                    if abs((i + 1) * 6 - newbrick) < 10 and difference < 20:
                         if current_brick > test_tower[i+1] or current_brick < test_tower[i-1]:
                             best_to_replace = current_brick
-                            return best_to_replace
+                            return (best_to_replace, f"The computer took {newbrick} from the {pile} stack and replaced {best_to_replace} because it fits between two bricks.")
+
                         # elif i < 5 and newbrick < current_brick:
                         #     best_to_replace = current_brick
                         #     print("brick fits between " + str(test_tower[i-1])+ " and " + str(test_tower[i+1]))
@@ -233,19 +244,18 @@ class Game:
                         #     print("brick fits between " + str(test_tower[i-1])+ " and " + str(test_tower[i+1]))
                         #     return best_to_replace
                     
-
         best_to_replace = None
         score = 0
         highest_score = 0
-
+        print(pile, slot, difference)
         before_score = self.evaluate_tower(test_tower, self.loaded_model)
         if best_to_replace == None:
-            for i in range(0, len(test_tower)):
+            for i in range(1, len(test_tower) - 1):
                 current_brick = test_tower[i]
                 test_tower[i] = newbrick
                 if test_tower == sorted(test_tower):
                     best_to_replace = current_brick
-                    return best_to_replace
+                    return (best_to_replace, f"The computer took {newbrick} from the {pile} stack and replaced {best_to_replace} because it wins.")
                 score = self.evaluate_tower(test_tower, self.loaded_model)
                 offset = abs((i + 1) * 6 - newbrick)
                 if offset > 5:
@@ -258,7 +268,30 @@ class Game:
                         best_to_replace = current_brick
                 test_tower[i] = current_brick 
             if highest_score > before_score + threshold:
-                return best_to_replace
+                return (best_to_replace, f"The computer took {newbrick} from the {pile} stack and replaced {best_to_replace} because it the most logical move.")
+                
+            
+            elif slot != None and (pile == 'hidden' or difference > 18):
+                start = 0 if slot <= 3 else slot - 3
+                if  slot < 6 and test_tower[start:slot] == sorted(test_tower[start:slot]) and newbrick < test_tower[slot]:
+                    best_to_replace = test_tower[slot]
+                    return (best_to_replace, f"The computer took {newbrick} from the {pile} stack and replaced {best_to_replace} because it frees up space above.")
+                end = 10 if slot >= 6 else slot + 3
+                if slot > 4 and test_tower[(slot + 1):end] == sorted(test_tower[slot:end]) and newbrick > test_tower[slot]:
+                    best_to_replace = test_tower[slot]
+                    return (best_to_replace, f"The computer took {newbrick} from the {pile} stack and replaced {best_to_replace} because it frees up space below.")
+                if test_tower[:slot] == sorted(test_tower[:slot]) and newbrick < current_brick:
+                    best_to_replace = test_tower[slot]
+                    return (best_to_replace, f"The computer took {newbrick} from the {pile} stack and replaced {best_to_replace} because it condenses the lower tower.")
+                if test_tower[(slot + 1):] == sorted(test_tower[(slot + 1):]) and newbrick > current_brick:
+                    best_to_replace = test_tower[slot]
+                    return (best_to_replace, f"The computer took {newbrick} from the {pile} stack and replaced {best_to_replace} because it condenses the upper tower.")
+            elif (newbrick < min(test_tower)):
+                    best_to_replace = test_tower[0]
+                    return (best_to_replace, f"The computer took {newbrick} from the {pile} stack and replaced {best_to_replace} because it fits at the bottom after all.")
+            elif (newbrick > max(test_tower)):
+                    best_to_replace = test_tower[9]
+                    return (best_to_replace, f"The computer took {newbrick} from the {pile} stack and replaced {best_to_replace} because it fits at the top after all.")
             else:
                 return None
 
@@ -272,100 +305,126 @@ class Game:
         print('self.discard', self.discard)
         take_from_pile = self.discard
         newbrick = take_from_pile[0]
-        best_to_replace = self.calculate_best_replacement(test_tower, newbrick, 0)
+        best_to_replace = self.calculate_best_replacement(test_tower, newbrick, 0, 'discard')
         if best_to_replace != None:
             take_from_pile.remove(newbrick)
-            self.find_and_replace(newbrick, best_to_replace, self.computer_tower, self.discard)
-            return f"The computer took {newbrick} from the discard pile and replaced a brick."
+            self.find_and_replace(newbrick, best_to_replace[0], self.computer_tower)
+            return best_to_replace[1]
 
         take_from_pile = self.main_pile
         newbrick = take_from_pile[0]
 
-        best_to_replace = self.calculate_best_replacement(test_tower, newbrick, -.15)
+        best_to_replace = self.calculate_best_replacement(test_tower, newbrick, -.15, 'hidden')
         if best_to_replace != None:
             take_from_pile.remove(newbrick)
-            self.find_and_replace(newbrick, best_to_replace, tower, discard)
-            return f"The computer took {newbrick} from the main pile and replaced a brick."
+            self.find_and_replace(newbrick, best_to_replace[0], self.computer_tower)
+            return best_to_replace[1]
             
         return "The computer passes"
 
         
 
 
-    def players_turn(self, tower,main_pile,discard):
+    def players_turn(self):
         """manages players turns"""
         print("\n")
         print("-----YOUR TURN-----")
-        print("Your tower:" , tower)
-        stage = 1
+        print("Your tower:" , self.player_tower)
         #in stage 1 ask the player if they want a brick from the discard or main pile
-        while (stage == 1):
-            player_input = (input(str("Type 'D' to take " + str(discard[0]) + " from the discard pile,\r\nType 'M' to get a new brick from the main pile."))).lower()
-            if(player_input == "d"):
-                #take brick from discard pile
-                take_from_pile = discard
-                newbrick = take_from_pile[0]
-                #skip stage 2 and go straight to stage 3
-                stage = 3
-                break
-            elif(player_input == "m"):
-                #tell the player the hidden brick value
-                print("you drew", main_pile[0], "from the main pile.")
-                #go to stage 2
-                stage = 2
-                break
-            else:
-                #if the player give the wrong input repeat stage 1
-                print("please try again")
-                continue
+        return f"Take {str(self.discard[0])} from the discard pile?\r\nClick 'None' to get a new brick from the main pile."
+    
 
-        #in stage 2 ask if the player wants the brick from the main pile
-        while (stage == 2):
-            take_this_brick = (input(str("Type 'Y' to take this brick\r\nType 'P' to pass")).lower())
-            take_from_pile = main_pile
-            #if place takes the brick proceed to stage 3
-            #take brick from main pile
-            newbrick = take_from_pile[0]
-            if (take_this_brick == "y"):
+    def take_from_pile(self, pile_type, brick_to_replace):
+
+
+        #take brick from discard pile
+        if pile_type == "discard":
+            take_pile = self.discard
+        elif pile_type == "main":
+            take_pile = self.main_pile
+        newbrick = take_pile[0]
+        #skip stage 2 and go straight to stage 3
+                #make sure this input is an integer
+
+        #replace the correct brick, if the brick is not in the player's tower repeat stage 3
+        self.find_and_replace(newbrick, brick_to_replace, self.player_tower)
+    
+        #end players turn
+        # self.add_brick_to_discard(brick_to_replace)
+        take_pile.remove(newbrick)
+        return self.player_tower
+
+
+
+        # #tell the player which brick was replaced and remove the brick from the pile
+        # print("You replaced", brick_to_replace, "with", newbrick)
+        # return
+        # stage = 3
+        #     elif(player_input == "m"):
+        #         #tell the player the hidden brick value
+        #         print("you drew", self.main_pile[0], "from the main pile.")
+        #         #go to stage 2
+        #         stage = 2
+        #         break
+        #     else:
+        #         #if the player give the wrong input repeat stage 1
+        #         print("please try again")
+        #         continue
+
+        # #in stage 2 ask if the player wants the brick from the main pile
+        # while (stage == 2):
+        #     take_this_brick = (input(str("Type 'Y' to take this brick\r\nType 'P' to pass")).lower())
+        #     take_from_pile = main_pile
+        #     #if place takes the brick proceed to stage 3
+        #     #take brick from main pile
+        #     newbrick = take_from_pile[0]
+        #     if (take_this_brick == "y"):
                 
-                #go to stage 3
-                stage = 3
-                break
-            #if the player does not want the brick the turn is skipped
-            elif(take_this_brick == "p"):
-                print("You discarded the brick.")
-                self.add_brick_to_discard(self.get_top_brick(take_from_pile))
-                return
-            else:
-                #if the player gives the wrong input repeat stage 2
-                print("try again")
-                continue
-        #in stage 3ask the player what brick they want to replace
-        while(stage == 3):
+        #         #go to stage 3
+        #         stage = 3
+        #         break
+        #     #if the player does not want the brick the turn is skipped
+        #     elif(take_this_brick == "p"):
+        #         print("You discarded the brick.")
+        #         self.add_brick_to_discard(self.get_top_brick(take_from_pile))
+        #         return
+        #     else:
+        #         #if the player gives the wrong input repeat stage 2
+        #         print("try again")
+        #         continue
+        # #in stage 3ask the player what brick they want to replace
+        # while(stage == 3):
 
-            #make sure this input is an integer
-            try:
-                brick_to_replace = int(input("What brick do you want to replace?"))
-            except ValueError:
-                #if the input is incorrect repeat stage 3
-                print("try again")
-                continue
-            #replace the correct brick, if the brick is not in the player's tower repeat stage 3
-            correctinput = self.find_and_replace(newbrick, brick_to_replace, tower, discard)
-            if correctinput == False:
-                print(brick_to_replace, "is not in you tower.")
+        #     #make sure this input is an integer
+        #     try:
+        #         brick_to_replace = int(input("What brick do you want to replace?"))
+        #     except ValueError:
+        #         #if the input is incorrect repeat stage 3
+        #         print("try again")
+        #         continue
+        #     #replace the correct brick, if the brick is not in the player's tower repeat stage 3
+        #     correctinput = self.find_and_replace(newbrick, brick_to_replace, tower, discard)
+        #     if correctinput == False:
+        #         print(brick_to_replace, "is not in you tower.")
                 
-                continue
-            else:
-                #end players turn
-                self.add_brick_to_discard(brick_to_replace)
-                take_from_pile.remove(newbrick)
-                stage = 0
-                break
+        #         continue
+        #     else:
+        #         #end players turn
+        #         self.add_brick_to_discard(brick_to_replace)
+        #         take_from_pile.remove(newbrick)
+        #         stage = 0
+        #         break
 
-        #tell the player which brick was replaced and remove the brick from the pile
-        print("You replaced", brick_to_replace, "with", newbrick)
-        return
+        # #tell the player which brick was replaced and remove the brick from the pile
+        # print("You replaced", brick_to_replace, "with", newbrick)
+        # return
+
+
+    def top_of_pile(self, pile):
+        if pile == 'discard':
+            return self.discard[0]
+        if pile == 'main':
+            return self.main_pile[0]
 
 
     def start(self):
@@ -395,7 +454,7 @@ class Game:
         #computers turn
         game_text = self.computer_play()
         #check if computer has won
-        Computer_wins = self.check_tower_blaster(self.computer_tower)
+        Computer_wins = self.check_tower_blaster('computer')
         # check if the main pile is empty
         self.check_bricks(self.main_pile, self.discard)
         # self.players_turn(self.player_tower, self.main_pile, self.discard)
