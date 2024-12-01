@@ -269,21 +269,21 @@ class Game:
             if highest_score > before_score + threshold:
                 return best_to_replace
                 
-            elif (newbrick < min(test_tower)):
-                best_to_replace = test_tower[0]
-                return best_to_replace
-            elif (newbrick > max(test_tower)):
-                best_to_replace = test_tower[9]
-                return best_to_replace
             
-            elif slot != None and (pile == 'main' or difference < 10):
-                start = 0 if slot <= 4 else slot - 4
+            elif slot != None and (pile == 'main' or difference > 18):
+                start = 0 if slot <= 3 else slot - 3
                 if test_tower[start:slot] == sorted(test_tower[start:slot]) and newbrick < test_tower[slot]:
                     best_to_replace = test_tower[slot]
                     return best_to_replace
-                end = 10 if slot >= 6 else slot + 4
+                end = 10 if slot >= 7 else slot + 3
                 if test_tower[slot:end] == sorted(test_tower[slot:end]) and newbrick > test_tower[slot]:
                     best_to_replace = test_tower[slot]
+                    return best_to_replace
+                if (newbrick < min(test_tower)):
+                    best_to_replace = test_tower[0]
+                    return best_to_replace
+                if (newbrick > max(test_tower)):
+                    best_to_replace = test_tower[9]
                     return best_to_replace
             else:
                 return None
