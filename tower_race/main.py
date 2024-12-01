@@ -216,24 +216,25 @@ class Game:
 
 
     def calculate_best_replacement(self, test_tower, newbrick, threshold, pile):
-        if (newbrick < min(test_tower) and newbrick < 5) or (newbrick < 6 and newbrick < test_tower[1] and newbrick < test_tower[0]):
+        if test_tower[0] >= 12 and test_tower[:5] != sorted(test_tower[:5]) and ((newbrick < min(test_tower) and test_tower[0] > 5) or (newbrick < 6 and newbrick < test_tower[1] and newbrick < test_tower[0])):
             best_to_replace = test_tower[0]
-            return best_to_replace
-        if (newbrick > max(test_tower) and newbrick > 55) or (newbrick > 54 and newbrick > test_tower[8] and newbrick > test_tower[9]):
+            return (best_to_replace, f"The computer took {newbrick} from the {pile} stack and replaced {best_to_replace} because it fits at the bottom.")
+        if test_tower[9] <= 48 and test_tower[5:] != sorted(test_tower[5:]) and ((newbrick > max(test_tower) and test_tower[9] < 55) or (newbrick > 54 and newbrick > test_tower[8] and newbrick > test_tower[9])):
             best_to_replace = test_tower[9]
-            return best_to_replace
+            return (best_to_replace, f"The computer took {newbrick} from the {pile} stack and replaced {best_to_replace} because it fits at the top.")
         slot = None
 
         difference = 100
         for i in range(1, len(test_tower) - 1):
                 current_brick = test_tower[i]
                 difference = test_tower[i+1] - test_tower[i-1]
-                if newbrick < test_tower[i+1] and newbrick > test_tower[i-1] and difference > 1 and difference < 20:
+                if newbrick < test_tower[i+1] and newbrick > test_tower[i-1] and difference > 1:
                     slot = i
-                    if abs((i + 1) * 6 - newbrick) < 10:
+                    if abs((i + 1) * 6 - newbrick) < 10 and difference < 20:
                         if current_brick > test_tower[i+1] or current_brick < test_tower[i-1]:
                             best_to_replace = current_brick
-                            return best_to_replace
+                            return (best_to_replace, f"The computer took {newbrick} from the {pile} stack and replaced {best_to_replace} because it fits between two bricks.")
+
                         # elif i < 5 and newbrick < current_brick:
                         #     best_to_replace = current_brick
                         #     print("brick fits between " + str(test_tower[i-1])+ " and " + str(test_tower[i+1]))
@@ -246,15 +247,15 @@ class Game:
         best_to_replace = None
         score = 0
         highest_score = 0
-
+        print(pile, slot, difference)
         before_score = self.evaluate_tower(test_tower, self.loaded_model)
         if best_to_replace == None:
-            for i in range(0, len(test_tower)):
+            for i in range(1, len(test_tower) - 1):
                 current_brick = test_tower[i]
                 test_tower[i] = newbrick
                 if test_tower == sorted(test_tower):
                     best_to_replace = current_brick
-                    return best_to_replace
+                    return (best_to_replace, f"The computer took {newbrick} from the {pile} stack and replaced {best_to_replace} because it wins.")
                 score = self.evaluate_tower(test_tower, self.loaded_model)
                 offset = abs((i + 1) * 6 - newbrick)
                 if offset > 5:
@@ -267,24 +268,30 @@ class Game:
                         best_to_replace = current_brick
                 test_tower[i] = current_brick 
             if highest_score > before_score + threshold:
-                return best_to_replace
+                return (best_to_replace, f"The computer took {newbrick} from the {pile} stack and replaced {best_to_replace} because it the most logical move.")
                 
             
-            elif slot != None and (pile == 'main' or difference > 18):
+            elif slot != None and (pile == 'hidden' or difference > 18):
                 start = 0 if slot <= 3 else slot - 3
-                if test_tower[start:slot] == sorted(test_tower[start:slot]) and newbrick < test_tower[slot]:
+                if  slot < 6 and test_tower[start:slot] == sorted(test_tower[start:slot]) and newbrick < test_tower[slot]:
                     best_to_replace = test_tower[slot]
-                    return best_to_replace
-                end = 10 if slot >= 7 else slot + 3
-                if test_tower[slot:end] == sorted(test_tower[slot:end]) and newbrick > test_tower[slot]:
+                    return (best_to_replace, f"The computer took {newbrick} from the {pile} stack and replaced {best_to_replace} because it frees up space above.")
+                end = 10 if slot >= 6 else slot + 3
+                if slot > 4 and test_tower[(slot + 1):end] == sorted(test_tower[slot:end]) and newbrick > test_tower[slot]:
                     best_to_replace = test_tower[slot]
-                    return best_to_replace
-                if (newbrick < min(test_tower)):
+                    return (best_to_replace, f"The computer took {newbrick} from the {pile} stack and replaced {best_to_replace} because it frees up space below.")
+                if test_tower[:slot] == sorted(test_tower[:slot]) and newbrick < current_brick:
+                    best_to_replace = test_tower[slot]
+                    return (best_to_replace, f"The computer took {newbrick} from the {pile} stack and replaced {best_to_replace} because it condenses the lower tower.")
+                if test_tower[(slot + 1):] == sorted(test_tower[(slot + 1):]) and newbrick > current_brick:
+                    best_to_replace = test_tower[slot]
+                    return (best_to_replace, f"The computer took {newbrick} from the {pile} stack and replaced {best_to_replace} because it condenses the upper tower.")
+            elif (newbrick < min(test_tower)):
                     best_to_replace = test_tower[0]
-                    return best_to_replace
-                if (newbrick > max(test_tower)):
+                    return (best_to_replace, f"The computer took {newbrick} from the {pile} stack and replaced {best_to_replace} because it fits at the bottom after all.")
+            elif (newbrick > max(test_tower)):
                     best_to_replace = test_tower[9]
-                    return best_to_replace
+                    return (best_to_replace, f"The computer took {newbrick} from the {pile} stack and replaced {best_to_replace} because it fits at the top after all.")
             else:
                 return None
 
@@ -301,17 +308,17 @@ class Game:
         best_to_replace = self.calculate_best_replacement(test_tower, newbrick, 0, 'discard')
         if best_to_replace != None:
             take_from_pile.remove(newbrick)
-            self.find_and_replace(newbrick, best_to_replace, self.computer_tower)
-            return f"The computer took {newbrick} from the discard stack."
+            self.find_and_replace(newbrick, best_to_replace[0], self.computer_tower)
+            return best_to_replace[1]
 
         take_from_pile = self.main_pile
         newbrick = take_from_pile[0]
 
-        best_to_replace = self.calculate_best_replacement(test_tower, newbrick, -.15, 'main')
+        best_to_replace = self.calculate_best_replacement(test_tower, newbrick, -.15, 'hidden')
         if best_to_replace != None:
             take_from_pile.remove(newbrick)
-            self.find_and_replace(newbrick, best_to_replace, self.computer_tower)
-            return f"The computer took {newbrick} from the hidden stack."
+            self.find_and_replace(newbrick, best_to_replace[0], self.computer_tower)
+            return best_to_replace[1]
             
         return "The computer passes"
 
@@ -328,6 +335,8 @@ class Game:
     
 
     def take_from_pile(self, pile_type, brick_to_replace):
+
+
         #take brick from discard pile
         if pile_type == "discard":
             take_pile = self.discard
@@ -341,7 +350,7 @@ class Game:
         self.find_and_replace(newbrick, brick_to_replace, self.player_tower)
     
         #end players turn
-        self.add_brick_to_discard(brick_to_replace)
+        # self.add_brick_to_discard(brick_to_replace)
         take_pile.remove(newbrick)
         return self.player_tower
 
