@@ -38,6 +38,7 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
+.env
 
 # Python egg files
 *.egg
