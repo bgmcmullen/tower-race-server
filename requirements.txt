@@ -1,0 +1,8 @@
+Django>=4.2
+djangorestframework
+channels>=4.0
+channels-redis>=4.0
+torch>=2.0
+torchvision>=0.15
+numpy>=1.22
+python-dotenv>=1.0
